@@ -5,3 +5,6 @@ vecto-sdk
 streamlit-option-menu
 python-dotenv
 openai
+Flask
+requests
+flask
