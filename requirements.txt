@@ -1,0 +1,7 @@
+streamlit 
+firebase
+firestore
+vecto-sdk
+streamlit-option-menu
+python-dotenv
+openai
