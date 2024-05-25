@@ -28,25 +28,21 @@ attributes = [{attribute_names[i]: attribute for i, attribute in enumerate(hadit
 print(data[:3])
 pprint(attributes[:3])
 
-data = ["string", "two", "three"]
-attributes = [
-    {"attribute1": "sdsdsads"},
-    {"attribute1": "dua"},
-    {"attribute1": "tiga"}
-]
+# Create the data list with the specified columns
+data = hadith_df[['source', 'text_en', 'chapter_no', 'hadith_no']].values.tolist()
+
+# Create the attribute list with all columns as dictionaries
+attribute = hadith_df.to_dict(orient='records')
+
+vs.ingest_all_text(data[:100], attribute[:100], batch_size=128)
+
+# Print the results
+print("Data List:")
+print(data[:5])  # Print the first 5 records for verification
+
+print("\nAttribute List:")
+print(attribute[:5])  # Print the first 5 records for verification
 
 # data = [io.StringIO(hadith_id) for hadith_id in hadith_df['hadith_id'].astype(str).tolist()]
 
-formatted_data = [io.StringIO(item) for item in data]
-# for hadith_row in hadith_df.itertuples(index=False, name=None):
-#     attribute_dict = {attribute_names[i]: hadith_row[i] for i in range(len(attribute_names))}
-#     attributes.append(attribute_dict)
-print(data, attributes)
-# Ingest data
-# vs.ingest_all_text(data, attributes, batch_size=128)
 
-query = "materials to make cake"
-top_k = 6
-f = io.StringIO(query)
-response = vs.lookup_text_from_str(query, top_k)
-print(response)
