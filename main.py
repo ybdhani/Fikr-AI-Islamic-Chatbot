@@ -5,7 +5,7 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 
-import home, trending, account, chat, about
+import home, history, account, chat, about
 st.set_page_config(
         page_title="Fikr",
 )
