@@ -2,7 +2,6 @@ import streamlit as st
 import requests
 
 def app():
-
     st.title("What are you thinking?")
 
     if "openai_model" not in st.session_state:

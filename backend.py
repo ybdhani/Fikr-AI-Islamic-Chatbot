@@ -3,6 +3,7 @@ from openai import OpenAI
 from dotenv import load_dotenv
 import os
 from vecto import Vecto
+import json, csv, datetime
 
 # Load environment variables from .env file
 load_dotenv()
@@ -94,6 +95,9 @@ def chat():
         )
         final_assistant_message = final_response.choices[0].message.content.strip()
 
+        # Save chat history
+        save_chat_history(messages + [{"role": "assistant", "content": final_assistant_message}])
+
         # Step 8: Format the response
         response_content = (
             f"### Summarized Question:\n{summarized_question}\n\n"
@@ -121,6 +125,16 @@ def format_vector_result(index, result):
             f"- English Text: {attributes.get('text_en', 'N/A')}\n"
             f"- Source: {attributes.get('source', 'N/A')}\n\n"
             f"Arabic Text:\n{attributes.get('text_ar', 'N/A')}\n")
+
+def save_chat_history(messages, filename="chat_history.json"):
+    timestamp = datetime.datetime.now().isoformat()
+    with open(filename, "a") as f:
+        for message in messages:
+            message["timestamp"] = timestamp
+            json.dump(message, f)
+            f.write("\n")
+
+
 
 if __name__ == '__main__':
     app.run(debug=True)
