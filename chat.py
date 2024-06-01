@@ -53,5 +53,9 @@ def app():
             else:
                 st.error("Error: " + response.json().get("error", "Unknown error"))
 
+    # Floating button to move current chat to history and clear from page
+    if st.button("New Chat", key="new_chat_button"):
+        st.session_state.messages = []
+
 if __name__ == "__main__":
     app()
