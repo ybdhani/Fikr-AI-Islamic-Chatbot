@@ -1,5 +1,6 @@
 import streamlit as st
 import requests
+import uuid
 
 def app():
     st.title("What are you thinking?")
@@ -12,6 +13,9 @@ def app():
 
     if "expanders" not in st.session_state:
         st.session_state.expanders = []
+
+    if "session_id" not in st.session_state:
+        st.session_state.session_id = str(uuid.uuid4())
 
     def toggle_expander(index):
         if index in st.session_state.expanders:
@@ -39,6 +43,7 @@ def app():
             response = requests.post(
                 "http://127.0.0.1:5000/chat",  # Replace with your Flask server URL
                 json={
+                    "session_id": st.session_state.session_id,
                     "messages": [
                         {"role": m["role"], "content": m["content"]}
                         for m in st.session_state.messages

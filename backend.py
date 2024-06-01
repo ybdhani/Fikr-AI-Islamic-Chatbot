@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 import os
 from vecto import Vecto
 import json, csv, datetime
+import uuid
 
 # Load environment variables from .env file
 load_dotenv()
@@ -36,6 +37,7 @@ load_chat_history()
 @app.route('/chat', methods=['POST'])
 def chat():
     data = request.json
+    session_id = data.get("session_id", str(uuid.uuid4()))  # Create a new session_id if not provided
     messages = data.get("messages", [])
     model = data.get("model", "gpt-3.5-turbo")
 
@@ -112,7 +114,7 @@ def chat():
         final_assistant_message = final_response.choices[0].message.content.strip()
 
         # Save chat history
-        save_chat_history(messages + [{"role": "assistant", "content": final_assistant_message}], summarized_question)
+        save_chat_history(session_id, messages + [{"role": "assistant", "content": final_assistant_message}], summarized_question)
 
         # Step 8: Format the response
         vector_answers = (
@@ -123,7 +125,7 @@ def chat():
             f"### Sources:\n{formatted_vector_results}"
         )
 
-        return jsonify({"content": final_assistant_message, "vector_answers": vector_answers})
+        return jsonify({"content": final_assistant_message, "vector_answers": vector_answers, "session_id": session_id})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -154,18 +156,25 @@ def format_vector_result(index, result):
             f"- Source: {attributes.get('source', 'N/A')}\n\n"
             f"Arabic Text:\n{attributes.get('text_ar', 'N/A')}\n")
 
-def save_chat_history(messages, summary, filename="chat_history.json"):
+def save_chat_history(session_id, messages, summary, filename="chat_history.json"):
     global chat_history
     timestamp = datetime.datetime.now().isoformat()
-    chat_entry = {
-        "timestamp": timestamp,
-        "summary": summary,
-        "messages": messages
-    }
-    chat_history.append(chat_entry)
-    with open(filename, "a") as f:
-        json.dump(chat_entry, f)
-        f.write("\n")
+    existing_session = next((entry for entry in chat_history if entry["session_id"] == session_id), None)
+    if existing_session:
+        existing_session["messages"] = messages
+        existing_session["summary"] = summary
+        existing_session["timestamp"] = timestamp
+    else:
+        chat_entry = {
+            "session_id": session_id,
+            "timestamp": timestamp,
+            "summary": summary,
+            "messages": messages
+        }
+        chat_history.append(chat_entry)
+        with open(filename, "a") as f:
+            json.dump(chat_entry, f)
+            f.write("\n")
 
 if __name__ == '__main__':
     app.run(debug=True)
