@@ -90,7 +90,7 @@ def chat():
         final_response = client.chat.completions.create(
             model=model,
             messages=final_prompt_messages,
-            max_tokens=200,
+            max_tokens=400,
             temperature=0.5
         )
         final_assistant_message = final_response.choices[0].message.content.strip()
@@ -99,15 +99,15 @@ def chat():
         save_chat_history(messages + [{"role": "assistant", "content": final_assistant_message}])
 
         # Step 8: Format the response
-        response_content = (
+        vector_answers = (
             f"### Summarized Question:\n{summarized_question}\n\n"
+            f"#### Vector Query: \n{summarized_query}\n\n"
             f"### Initial Answer:\n{initial_answer}\n\n"
             f"### Vector Search Based Answer:\n{vector_based_answer}\n\n"
-            f"### Refined Answer:\n{final_assistant_message}\n\n"
             f"### Sources:\n{formatted_vector_results}"
         )
 
-        return jsonify({"content": response_content})
+        return jsonify({"content": final_assistant_message, "vector_answers": vector_answers})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
