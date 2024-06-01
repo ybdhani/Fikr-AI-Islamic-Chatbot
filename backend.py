@@ -17,6 +17,22 @@ token = os.getenv("vecto_api_token")
 vector_space_id = os.getenv("vector_space_id")
 vs = Vecto(token, vector_space_id)
 
+# Load chat history from file
+CHAT_HISTORY_FILE = "chat_history.json"
+chat_history = []
+
+def load_chat_history():
+    global chat_history
+    try:
+        with open(CHAT_HISTORY_FILE, "r") as f:
+            chat_history = [json.loads(line) for line in f]
+    except FileNotFoundError:
+        chat_history = []
+    except Exception as e:
+        print(f"Error loading chat history: {e}")
+
+load_chat_history()
+
 @app.route('/chat', methods=['POST'])
 def chat():
     data = request.json
@@ -96,7 +112,7 @@ def chat():
         final_assistant_message = final_response.choices[0].message.content.strip()
 
         # Save chat history
-        save_chat_history(messages + [{"role": "assistant", "content": final_assistant_message}])
+        save_chat_history(messages + [{"role": "assistant", "content": final_assistant_message}], summarized_question)
 
         # Step 8: Format the response
         vector_answers = (
@@ -110,6 +126,18 @@ def chat():
         return jsonify({"content": final_assistant_message, "vector_answers": vector_answers})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+@app.route('/chat_histories', methods=['GET'])
+def chat_histories():
+    summaries = [{"summary": entry["summary"], "timestamp": entry["timestamp"]} for entry in chat_history if entry.get("summary")]
+    return jsonify(summaries)
+
+@app.route('/chat_history/<timestamp>', methods=['GET'])
+def chat_history_by_timestamp(timestamp):
+    for entry in chat_history:
+        if entry["timestamp"] == timestamp:
+            return jsonify(entry["messages"])
+    return jsonify({"error": "Chat history not found."}), 404
 
 def lookup_vector_database(query):
     top_k = 10
@@ -126,15 +154,18 @@ def format_vector_result(index, result):
             f"- Source: {attributes.get('source', 'N/A')}\n\n"
             f"Arabic Text:\n{attributes.get('text_ar', 'N/A')}\n")
 
-def save_chat_history(messages, filename="chat_history.json"):
+def save_chat_history(messages, summary, filename="chat_history.json"):
+    global chat_history
     timestamp = datetime.datetime.now().isoformat()
+    chat_entry = {
+        "timestamp": timestamp,
+        "summary": summary,
+        "messages": messages
+    }
+    chat_history.append(chat_entry)
     with open(filename, "a") as f:
-        for message in messages:
-            message["timestamp"] = timestamp
-            json.dump(message, f)
-            f.write("\n")
-
-
+        json.dump(chat_entry, f)
+        f.write("\n")
 
 if __name__ == '__main__':
     app.run(debug=True)

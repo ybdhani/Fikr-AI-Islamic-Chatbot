@@ -19,6 +19,7 @@ def app():
         else:
             st.session_state.expanders.append(index)
 
+    # Display chat messages
     for i, message in enumerate(st.session_state.messages):
         with st.chat_message(message["role"]):
             st.markdown(message["content"])

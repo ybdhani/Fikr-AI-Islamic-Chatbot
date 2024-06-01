@@ -1,24 +1,41 @@
 import streamlit as st
-import json
+import requests
 
 def app():
     st.title("Chat History")
 
-    history_file = "chat_history.json"
+    history_endpoint = "http://localhost:5000/chat_histories"
+    chat_history_endpoint = "http://localhost:5000/chat_history"
+
+    if "loaded_chat" not in st.session_state:
+        st.session_state.loaded_chat = False
 
     try:
-        with open(history_file, "r") as f:
-            history = [json.loads(line) for line in f]
-
-        if history:
-            for entry in history:
-                st.write(f"**{entry['role'].capitalize()} ({entry['timestamp']}):** {entry['content']}")
+        response = requests.get(history_endpoint)
+        if response.status_code == 200:
+            history = response.json()
+            if history:
+                selected_summary = st.selectbox(
+                    "Select a chat history summary to load:",
+                    options=[f"{entry['summary']} ({entry['timestamp']})" for entry in history]
+                )
+                if selected_summary:
+                    selected_timestamp = selected_summary.split(' (')[-1][:-1]
+                    if st.button("Load Selected Chat History"):
+                        chat_response = requests.get(f"{chat_history_endpoint}/{selected_timestamp}")
+                        if chat_response.status_code == 200:
+                            chat_messages = chat_response.json()
+                            st.session_state.messages = chat_messages
+                            st.session_state.loaded_chat = True
+                            st.experimental_rerun()
+                        else:
+                            st.error("Error loading chat history.")
+            else:
+                st.write("No chat history available.")
         else:
-            st.write("No chat history available.")
-    except FileNotFoundError:
-        st.write("Chat history file not found.")
+            st.error("Error fetching chat summaries.")
     except Exception as e:
-        st.write(f"Error loading chat history: {e}")
+        st.error(f"Error loading chat history: {e}")
 
 if __name__ == "__main__":
     app()
