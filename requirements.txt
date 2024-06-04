@@ -8,3 +8,4 @@ openai
 Flask
 requests
 flask
+streamlit_extras

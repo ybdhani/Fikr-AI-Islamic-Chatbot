@@ -17,7 +17,7 @@ firebase_admin.initialize_app(cred)
 db = firestore.client()
 
 def app():
-    st.title('Welcome to :blue[Fikr] ')
+    st.title('Sign in or create an account')
 
     if 'username' not in st.session_state:
         st.session_state.username = ''

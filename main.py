@@ -1,32 +1,30 @@
 import streamlit as st
-
 from streamlit_option_menu import option_menu
+from streamlit_extras.app_logo import add_logo
 import os
 from dotenv import load_dotenv
 load_dotenv()
 
-import home, history, account, chat, about
+# Import your different app modules
+import about, history, account, chat
+
+# Set the page config
 st.set_page_config(
-        page_title="Fikr",
+    page_title="Fikr",
 )
 
-st.markdown(
-    """
-        <!-- Global site tag (gtag.js) - Google Analytics -->
-        <script async src=f"https://www.googletagmanager.com/gtag/js?id={os.getenv('analytics_tag')}"></script>
-        <script>
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', os.getenv('analytics_tag'));
-        </script>
-    """, unsafe_allow_html=True)
-print(os.getenv('analytics_tag'))
-
-
+# Define a custom CSS style with your font
+custom_css = """
+    <style>
+        /* Set the font-family to your imported font */
+        body {
+            font-family: 'Encode Sans Condensed', sans-serif;
+        }
+    </style>
+"""
+st.markdown(custom_css, unsafe_allow_html=True)
 
 class MultiApp:
-
     def __init__(self):
         self.apps = []
 
@@ -37,34 +35,33 @@ class MultiApp:
         })
 
     def run(self):
-        with st.sidebar:        
+        with st.sidebar:
+            # Display the logo image
+            st.image("blackfikrlogo.png", use_column_width=True)
+
             app = option_menu(
-                menu_title='Fikr ',
-                options=['Home','Account','History','Chat','About'],
-                icons=['house-fill','person-circle','clock-history','chat-left-dots','info-circle-fill'],
-                menu_icon='chat-text-fill',
+                menu_title='',
+                options=['About', 'Account', 'History', 'Chat'],
+                icons=['info-circle-fill', 'person-circle', 'clock-history', 'chat-left-dots'],
+                menu_icon='',
                 default_index=1,
                 styles={
                     "container": {"padding": "5!important"},
-                    "icon": {"font-size": "23px"}, 
-                    "nav-link": {"font-size": "20px", "text-align": "left", "margin":"0px", "--hover-color": "blue"},
-                    "nav-link-selected": {"background-color": "#02ab21"},
+                    "icon": {"font-size": "23px"},
+                    "nav-link": {"font-size": "20px", "text-align": "left", "margin": "3px", "--hover-color": "#d2d2d2"},
+                    "nav-link-selected": {"background-color": "#f76d4f"},
                 }
             )
 
-        if app == "Home":
-            home.app()
+        if app == 'About':
+            about.app()
         elif app == "Account":
             account.app()
         elif app == "History":
             history.app()
         elif app == 'Chat':
             chat.app()
-        elif app == 'About':
-            about.app()
 
 # Initialize and run the app
 app = MultiApp()
 app.run()
-          
-         
