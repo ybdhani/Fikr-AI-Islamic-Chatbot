@@ -158,7 +158,7 @@ def format_vector_result(index, result):
 
 def save_chat_history(session_id, messages, summary, filename="chat_history.json"):
     global chat_history
-    timestamp = datetime.datetime.now().isoformat()
+    timestamp = datetime.datetime.now().strftime("%I:%M %p and %d/%m/%Y")
     existing_session = next((entry for entry in chat_history if entry["session_id"] == session_id), None)
     if existing_session:
         existing_session["messages"] = messages
