@@ -47,7 +47,7 @@ def chat():
         # Step 2: Summarize chat into a general question for vector query
         summary_prompt_messages = [
             {"role": "system", "content": "You are a helpful assistant."},
-            {"role": "user", "content": f"Summarize the following conversation into a general question:\n{messages}"}
+            {"role": "user", "content": f"Summarize the following conversation into a general question, taking into account the most recent question as emphasis if they are unrelated:\n{messages}"}
         ]
         
         summary_response = client.chat.completions.create(
@@ -158,7 +158,7 @@ def format_vector_result(index, result):
 
 def save_chat_history(session_id, messages, summary, filename="chat_history.json"):
     global chat_history
-    timestamp = datetime.datetime.now().strftime("%I:%M %p and %d/%m/%Y")
+    timestamp = datetime.datetime.now().strftime("%I:%M %p %d/%m/%Y")
     existing_session = next((entry for entry in chat_history if entry["session_id"] == session_id), None)
     if existing_session:
         existing_session["messages"] = messages
