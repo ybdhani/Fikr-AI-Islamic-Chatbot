@@ -2,12 +2,11 @@ from flask import Flask, request, jsonify
 from openai import OpenAI
 from dotenv import load_dotenv
 import os
+
 from vecto import Vecto
 import json, csv, datetime
-import json
 import requests
 import uuid
-import datetime
 import firebase_admin
 from firebase_admin import firestore
 from firebase_admin import credentials
@@ -36,19 +35,16 @@ vs = Vecto(vecto_api_token, vector_space_id)
 
 # Load chat history from file
 CHAT_HISTORY_FILE = "chat_history.json"
-chat_history = []
 
 def load_chat_history():
-    global chat_history
     try:
         with open(CHAT_HISTORY_FILE, "r") as f:
-            chat_history = json.load(f)
+            return json.load(f)
     except FileNotFoundError:
-        chat_history = []
+        return []
     except Exception as e:
         print(f"Error loading chat history: {e}")
-
-load_chat_history()
+        return []
 
 def sign_up_with_email_and_password(email, password, username=None, return_secure_token=True):
     try:
@@ -219,6 +215,7 @@ def chat_histories():
     if not user_id:
         return jsonify({"error": "User ID is required"}), 400
 
+    chat_history = load_chat_history()
     summaries = [
         {"session_id": entry["session_id"], "summary": entry["summary"], "timestamp": entry["timestamp"]}
         for entry in chat_history if entry.get("summary") and entry.get("user_id") == user_id
@@ -227,6 +224,7 @@ def chat_histories():
 
 @app.route('/chat_history/<session_id>', methods=['GET'])
 def chat_history_by_uuid(session_id):
+    chat_history = load_chat_history()
     for entry in chat_history:
         if entry["session_id"] == session_id:
             return jsonify(entry["messages"])
@@ -248,7 +246,7 @@ def format_vector_result(index, result):
             f"Arabic Text:\n{attributes.get('text_ar', 'N/A')}\n")
 
 def save_chat_history(session_id, user_id, messages, summary, filename="chat_history.json"):
-    global chat_history
+    chat_history = load_chat_history()
     timestamp = datetime.datetime.now().strftime("%I:%M %p %d/%m/%Y")
     existing_session = next((entry for entry in chat_history if entry["session_id"] == session_id), None)
     if existing_session:
