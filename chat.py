@@ -56,6 +56,8 @@ def app():
     # Floating button to move current chat to history and clear from page
     if st.button("New Chat", key="new_chat_button"):
         st.session_state.messages = []
+        st.session_state.session_id = str(uuid.uuid4())
+
 
 if __name__ == "__main__":
     app()
