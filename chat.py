@@ -29,9 +29,10 @@ def app():
 
         with st.chat_message("assistant"):
             response = requests.post(
-                "http://127.0.0.1:5000/chat",  # Replace with your Flask server URL
+                "http://127.0.0.1:5000/chat",  
                 json={
                     "session_id": st.session_state.session_id,
+                    "user_id": st.session_state.userid,  
                     "messages": [
                         {"role": m["role"], "content": m["content"]}
                         for m in st.session_state.messages
