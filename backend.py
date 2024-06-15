@@ -2,7 +2,6 @@ from flask import Flask, request, jsonify
 from openai import OpenAI
 from dotenv import load_dotenv
 import os
-
 from vecto import Vecto
 import json, csv, datetime
 import requests
@@ -36,10 +35,41 @@ vs = Vecto(vecto_api_token, vector_space_id)
 # Load chat history from file
 CHAT_HISTORY_FILE = "chat_history.json"
 
-def load_chat_history():
+def load_chat_history_from_firebase(user_id):
+    chat_history = []
+    try:
+        sessions_ref = db.collection('users').document(user_id).collection('sessions').stream()
+        for session in sessions_ref:
+            session_id = session.id
+            session_data = session.to_dict()
+            
+            if 'timestamp' in session_data and 'summary' in session_data and 'messages' in session_data:
+                chat_entry = {
+                    "session_id": session_id,
+                    "timestamp": session_data.get("timestamp", ""),
+                    "summary": session_data.get("summary", ""),
+                    "messages": session_data.get("messages", []),
+                    "user_id": user_id
+                }
+                chat_history.append(chat_entry)
+    except Exception as e:
+        print(f"Error loading chat history from Firebase for user {user_id}: {e}")
+        raise Exception(f"Error loading chat history from Firebase: {e}")
+    return chat_history
+
+def load_chat_history(user_id=None):
+    if user_id:
+        try:
+            return load_chat_history_from_firebase(user_id)
+        except Exception as e:
+            print(f"Error loading chat history from Firebase, falling back to local file: {e}")
+
     try:
         with open(CHAT_HISTORY_FILE, "r") as f:
-            return json.load(f)
+            chat_history = json.load(f)
+            if user_id:
+                chat_history = [entry for entry in chat_history if entry.get("user_id") == user_id]
+            return chat_history
     except FileNotFoundError:
         return []
     except Exception as e:
@@ -215,18 +245,18 @@ def chat_histories():
     if not user_id:
         return jsonify({"error": "User ID is required"}), 400
 
-    chat_history = load_chat_history()
+    chat_history = load_chat_history(user_id)
     summaries = [
         {"session_id": entry["session_id"], "summary": entry["summary"], "timestamp": entry["timestamp"]}
         for entry in chat_history if entry.get("summary") and entry.get("user_id") == user_id
     ]
     return jsonify(summaries)
 
-@app.route('/chat_history/<session_id>', methods=['GET'])
-def chat_history_by_uuid(session_id):
-    chat_history = load_chat_history()
+@app.route('/chat_history/<user_id>/<session_id>', methods=['GET'])
+def chat_history_by_uuid(user_id, session_id):
+    chat_history = load_chat_history(user_id=user_id)
     for entry in chat_history:
-        if entry["session_id"] == session_id:
+        if entry["session_id"] == session_id and entry["user_id"] == user_id:
             return jsonify(entry["messages"])
     return jsonify({"error": "Chat history not found."}), 404
 
@@ -269,7 +299,6 @@ def save_chat_history(session_id, user_id, messages, summary, filename="chat_his
     
     # Save to Firebase
     save_to_firebase(user_id, session_id, messages, summary, timestamp)
-
 
 def save_to_firebase(user_id, session_id, messages, summary, timestamp):
     try:

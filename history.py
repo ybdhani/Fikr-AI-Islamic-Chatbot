@@ -7,7 +7,6 @@ def app():
     if 'userid' not in st.session_state or not st.session_state.userid:
         st.warning("You need to be signed in to see the chat history.")
         return
-
     history_endpoint = "http://localhost:5000/chat_histories"
     chat_history_endpoint = "http://localhost:5000/chat_history"
 
@@ -17,8 +16,10 @@ def app():
     if "messages" not in st.session_state:
         st.session_state.messages = []
 
+    user_id = st.session_state.userid
+
     try:
-        response = requests.get(history_endpoint, params={"user_id": st.session_state.userid})
+        response = requests.get(history_endpoint, params={"user_id": user_id})
         if response.status_code == 200:
             history = response.json()
             if history:
@@ -29,7 +30,7 @@ def app():
                 if selected_summary:
                     selected_uuid = selected_summary.split(' (')[-1][:-1]
                     if st.button("Load Selected Chat History"):
-                        chat_response = requests.get(f"{chat_history_endpoint}/{selected_uuid}")
+                        chat_response = requests.get(f"{chat_history_endpoint}/{user_id}/{selected_uuid}")
                         if chat_response.status_code == 200:
                             chat_messages = chat_response.json()
                             st.session_state.messages = chat_messages
