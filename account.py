@@ -1,8 +1,4 @@
 import streamlit as st
-import firebase_admin
-from firebase_admin import firestore
-from firebase_admin import credentials
-from firebase_admin import auth
 import json
 import requests
 from dotenv import load_dotenv
@@ -10,11 +6,7 @@ import os
 
 load_dotenv()
 
-firebase_api_key = os.getenv("FIREBASE_API_KEY")
-
-cred = credentials.Certificate("logintest-12b8b-e89e95a21c52.json")
-firebase_admin.initialize_app(cred)
-db = firestore.client()
+backend_url = "http://127.0.0.1:5000"
 
 def app():
     st.title('Sign in or create an account')
@@ -28,92 +20,56 @@ def app():
     if 'chat_history' not in st.session_state:
         st.session_state.chat_history = []
 
-    def sign_up_with_email_and_password(email, password, username=None, return_secure_token=True):
+    def sign_up_with_email_and_password(email, password, username=None):
         try:
-            rest_api_url = "https://identitytoolkit.googleapis.com/v1/accounts:signUp"
             payload = {
                 "email": email,
                 "password": password,
-                "returnSecureToken": return_secure_token
+                "username": username
             }
-            if username:
-                payload["displayName"] = username 
-            payload = json.dumps(payload)
-            r = requests.post(rest_api_url, params={"key": firebase_api_key}, data=payload)
-            try:
-                return r.json()['email']
-            except:
-                st.warning(r.json())
+            r = requests.post(f'{backend_url}/signup', json=payload)
+            response = r.json()
+            if 'error' in response:
+                st.warning(response['error'])
+            else:
+                return response.get('email')
         except Exception as e:
             st.warning(f'Signup failed: {e}')
 
-    def sign_in_with_email_and_password(email=None, password=None, return_secure_token=True):
-        rest_api_url = "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword"
-
+    def sign_in_with_email_and_password(email, password):
         try:
             payload = {
-                "returnSecureToken": return_secure_token
+                "email": email,
+                "password": password
             }
-            if email:
-                payload["email"] = email
-            if password:
-                payload["password"] = password
-            payload = json.dumps(payload)
-            print('payload sigin',payload)
-            r = requests.post(rest_api_url, params={"key": firebase_api_key}, data=payload)
-            try:
-                data = r.json()
+            r = requests.post(f'{backend_url}/signin', json=payload)
+            response = r.json()
+            if 'error' in response:
+                st.warning(response['error'])
+            else:
                 user_info = {
-                    'email': data['email'],
-                    'username': data.get('displayName'),  # Retrieve username if available
-                    'userid': data['localId']
+                    'email': response['email'],
+                    'username': response.get('displayName'),  # Retrieve username if available
+                    'userid': response['localId']
                 }
                 return user_info
-            except:
-                st.warning(data)
         except Exception as e:
             st.warning(f'Signin failed: {e}')
 
     def reset_password(email):
         try:
-            rest_api_url = "https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode"
-            payload = {
-                "email": email,
-                "requestType": "PASSWORD_RESET"
-            }
-            payload = json.dumps(payload)
-            r = requests.post(rest_api_url, params={"key": firebase_api_key}, data=payload)
-            if r.status_code == 200:
-                return True, "Reset email Sent"
+            payload = {"email": email}
+            r = requests.post(f'{backend_url}/reset-password', json=payload)
+            response = r.json()
+            if 'error' in response:
+                st.warning(response['error'])
             else:
-                # Handle error response
-                error_message = r.json().get('error', {}).get('message')
-                return False, error_message
+                return True, "Reset email Sent"
         except Exception as e:
             return False, str(e)
 
-    def save_chat_to_firestore(user_id, message):
-        try:
-            doc_ref = db.collection("chats").document(user_id)
-            doc_ref.update({
-                "messages": firestore.ArrayUnion([message])
-            })
-        except:
-            doc_ref.set({
-                "messages": [message]
-            })
 
-    def load_chat_from_firestore(user_id):
-        try:
-            doc_ref = db.collection("chats").document(user_id)
-            doc = doc_ref.get()
-            if doc.exists:
-                return doc.to_dict().get("messages", [])
-            else:
-                return []
-        except Exception as e:
-            st.warning(f'Failed to load chat history: {e}')
-            return []
+
 
     def f():
         try:
@@ -149,7 +105,7 @@ def app():
             else:
                 st.warning(f"Password reset failed: {message}") 
         
-    if "signedout"  not in st.session_state:
+    if "signedout" not in st.session_state:
         st.session_state["signedout"] = False
     if 'signout' not in st.session_state:
         st.session_state['signout'] = False    
@@ -179,16 +135,6 @@ def app():
         st.text('Email id: ' + st.session_state.useremail)
         st.button('Sign out', on_click=t)
         
-        st.write("Chat History:")
-        for message in st.session_state.chat_history:
-            st.write(message)
-
-        new_message = st.text_input("Type your message:")
-        if st.button("Send"):
-            if new_message:
-                save_chat_to_firestore(st.session_state.userid, new_message)
-                st.session_state.chat_history.append(new_message)
-
 def main():
     app()
 

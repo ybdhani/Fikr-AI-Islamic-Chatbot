@@ -4,19 +4,36 @@ from dotenv import load_dotenv
 import os
 from vecto import Vecto
 import json, csv, datetime
+import json
+import requests
 import uuid
+import datetime
+import firebase_admin
+from firebase_admin import firestore
+from firebase_admin import credentials
+from firebase_admin import auth
 
 # Load environment variables from .env file
 load_dotenv()
 
 app = Flask(__name__)
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+firebase_api_key = os.getenv("FIREBASE_API_KEY")
+
+cred = credentials.Certificate("logintest-12b8b-e89e95a21c52.json")
+firebase_admin.initialize_app(cred)
+db = firestore.client()
+
+firebase_api_key = os.getenv("FIREBASE_API_KEY")
+openai_api_key = os.getenv("OPENAI_API_KEY")
+vecto_api_token = os.getenv("vecto_api_token")
+vector_space_id = os.getenv("vector_space_id")
+
+client = OpenAI(api_key=openai_api_key)
+
 
 # Initialize Vecto
-token = os.getenv("vecto_api_token")
-vector_space_id = os.getenv("vector_space_id")
-vs = Vecto(token, vector_space_id)
+vs = Vecto(vecto_api_token, vector_space_id)
 
 # Load chat history from file
 CHAT_HISTORY_FILE = "chat_history.json"
@@ -33,6 +50,73 @@ def load_chat_history():
         print(f"Error loading chat history: {e}")
 
 load_chat_history()
+
+def sign_up_with_email_and_password(email, password, username=None, return_secure_token=True):
+    try:
+        rest_api_url = "https://identitytoolkit.googleapis.com/v1/accounts:signUp"
+        payload = {
+            "email": email,
+            "password": password,
+            "returnSecureToken": return_secure_token
+        }
+        if username:
+            payload["displayName"] = username 
+        payload = json.dumps(payload)
+        r = requests.post(rest_api_url, params={"key": firebase_api_key}, data=payload)
+        return r.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+def sign_in_with_email_and_password(email, password, return_secure_token=True):
+    try:
+        rest_api_url = "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword"
+        payload = {
+            "email": email,
+            "password": password,
+            "returnSecureToken": return_secure_token
+        }
+        payload = json.dumps(payload)
+        r = requests.post(rest_api_url, params={"key": firebase_api_key}, data=payload)
+        return r.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+def reset_password(email):
+    try:
+        rest_api_url = "https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode"
+        payload = {
+            "email": email,
+            "requestType": "PASSWORD_RESET"
+        }
+        payload = json.dumps(payload)
+        r = requests.post(rest_api_url, params={"key": firebase_api_key}, data=payload)
+        return r.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.route('/signup', methods=['POST'])
+def signup():
+    data = request.json
+    email = data.get('email')
+    password = data.get('password')
+    username = data.get('username')
+    response = sign_up_with_email_and_password(email, password, username)
+    return jsonify(response)
+
+@app.route('/signin', methods=['POST'])
+def signin():
+    data = request.json
+    email = data.get('email')
+    password = data.get('password')
+    response = sign_in_with_email_and_password(email, password)
+    return jsonify(response)
+
+@app.route('/reset-password', methods=['POST'])
+def reset_password_route():
+    data = request.json
+    email = data.get('email')
+    response = reset_password(email)
+    return jsonify(response)
 
 @app.route('/chat', methods=['POST'])
 def chat():
@@ -134,21 +218,12 @@ def chat_histories():
     summaries = [{"session_id": entry["session_id"], "summary": entry["summary"], "timestamp": entry["timestamp"]} for entry in chat_history if entry.get("summary")]
     return jsonify(summaries)
 
-
-# @app.route('/chat_history/<timestamp>', methods=['GET'])
-# def chat_history_by_timestamp(timestamp):
-#     for entry in chat_history:
-#         if entry["timestamp"] == timestamp:
-#             return jsonify(entry["messages"])
-#     return jsonify({"error": "Chat history not found."}), 404
-
 @app.route('/chat_history/<session_id>', methods=['GET'])
 def chat_history_by_uuid(session_id):
     for entry in chat_history:
         if entry["session_id"] == session_id:
             return jsonify(entry["messages"])
     return jsonify({"error": "Chat history not found."}), 404
-
 
 def lookup_vector_database(query):
     top_k = 10
