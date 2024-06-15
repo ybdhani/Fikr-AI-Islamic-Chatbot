@@ -31,7 +31,6 @@ vector_space_id = os.getenv("vector_space_id")
 
 client = OpenAI(api_key=openai_api_key)
 
-
 # Initialize Vecto
 vs = Vecto(vecto_api_token, vector_space_id)
 
@@ -226,7 +225,6 @@ def chat_histories():
     ]
     return jsonify(summaries)
 
-
 @app.route('/chat_history/<session_id>', methods=['GET'])
 def chat_history_by_uuid(session_id):
     for entry in chat_history:
@@ -270,6 +268,30 @@ def save_chat_history(session_id, user_id, messages, summary, filename="chat_his
     
     with open(filename, "w") as f:
         json.dump(chat_history, f, indent=4)
+    
+    # Save to Firebase
+    save_to_firebase(user_id, session_id, messages, summary, timestamp)
+
+
+def save_to_firebase(user_id, session_id, messages, summary, timestamp):
+    try:
+        # Reference to the user's document
+        user_ref = db.collection('users').document(user_id)
+        # Reference to the session's collection
+        session_ref = user_ref.collection('sessions').document(session_id)
+        
+        # Data to save
+        data = {
+            "timestamp": timestamp,
+            "summary": summary,
+            "messages": messages,
+        }
+        
+        # Set the data in Firestore
+        session_ref.set(data)
+        print(f"Successfully saved chat history to Firebase for user {user_id} and session {session_id}.")
+    except Exception as e:
+        print(f"Error saving chat history to Firebase: {e}")
 
 if __name__ == '__main__':
     app.run(debug=True)
