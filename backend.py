@@ -26,7 +26,7 @@ def load_chat_history():
     global chat_history
     try:
         with open(CHAT_HISTORY_FILE, "r") as f:
-            chat_history = [json.loads(line) for line in f]
+            chat_history = json.load(f)
     except FileNotFoundError:
         chat_history = []
     except Exception as e:
@@ -172,9 +172,9 @@ def save_chat_history(session_id, messages, summary, filename="chat_history.json
             "messages": messages
         }
         chat_history.append(chat_entry)
-        with open(filename, "a") as f:
-            json.dump(chat_entry, f)
-            f.write("\n")
+    
+    with open(filename, "w") as f:
+        json.dump(chat_history, f, indent=4)
 
 if __name__ == '__main__':
     app.run(debug=True)
