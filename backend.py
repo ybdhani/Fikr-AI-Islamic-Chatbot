@@ -122,6 +122,7 @@ def reset_password_route():
 def chat():
     data = request.json
     session_id = data.get("session_id", str(uuid.uuid4()))  # Create a new session_id if not provided
+    user_id = data.get("user_id")  # Get the user ID from the request
     messages = data.get("messages", [])
     model = data.get("model", "gpt-3.5-turbo")
 
@@ -198,7 +199,7 @@ def chat():
         final_assistant_message = final_response.choices[0].message.content.strip()
 
         # Save chat history
-        save_chat_history(session_id, messages + [{"role": "assistant", "content": final_assistant_message}], summarized_question)
+        save_chat_history(session_id, user_id, messages + [{"role": "assistant", "content": final_assistant_message}], summarized_question)
 
         # Step 8: Format the response
         vector_answers = (
@@ -215,8 +216,16 @@ def chat():
 
 @app.route('/chat_histories', methods=['GET'])
 def chat_histories():
-    summaries = [{"session_id": entry["session_id"], "summary": entry["summary"], "timestamp": entry["timestamp"]} for entry in chat_history if entry.get("summary")]
+    user_id = request.args.get('user_id')
+    if not user_id:
+        return jsonify({"error": "User ID is required"}), 400
+
+    summaries = [
+        {"session_id": entry["session_id"], "summary": entry["summary"], "timestamp": entry["timestamp"]}
+        for entry in chat_history if entry.get("summary") and entry.get("user_id") == user_id
+    ]
     return jsonify(summaries)
+
 
 @app.route('/chat_history/<session_id>', methods=['GET'])
 def chat_history_by_uuid(session_id):
@@ -240,7 +249,7 @@ def format_vector_result(index, result):
             f"- Source: {attributes.get('source', 'N/A')}\n\n"
             f"Arabic Text:\n{attributes.get('text_ar', 'N/A')}\n")
 
-def save_chat_history(session_id, messages, summary, filename="chat_history.json"):
+def save_chat_history(session_id, user_id, messages, summary, filename="chat_history.json"):
     global chat_history
     timestamp = datetime.datetime.now().strftime("%I:%M %p %d/%m/%Y")
     existing_session = next((entry for entry in chat_history if entry["session_id"] == session_id), None)
@@ -248,12 +257,14 @@ def save_chat_history(session_id, messages, summary, filename="chat_history.json
         existing_session["messages"] = messages
         existing_session["summary"] = summary
         existing_session["timestamp"] = timestamp
+        existing_session["user_id"] = user_id  # Update the user ID
     else:
         chat_entry = {
             "session_id": session_id,
             "timestamp": timestamp,
             "summary": summary,
-            "messages": messages
+            "messages": messages,
+            "user_id": user_id  # Include the user ID in the new entry
         }
         chat_history.append(chat_entry)
     

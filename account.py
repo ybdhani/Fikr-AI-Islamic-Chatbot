@@ -68,7 +68,18 @@ def app():
         except Exception as e:
             return False, str(e)
 
-
+    def load_chat_from_backend(user_id):
+        try:
+            r = requests.get(f'{backend_url}/chat_histories', params={"user_id": user_id})
+            response = r.json()
+            if 'error' in response:
+                st.warning(response['error'])
+                return []
+            user_chats = [chat for chat in response if chat['user_id'] == user_id]
+            return user_chats
+        except Exception as e:
+            st.warning(f'Failed to load chat history: {e}')
+            return []
 
 
     def f():
@@ -77,7 +88,7 @@ def app():
             st.session_state.username = userinfo['username']
             st.session_state.useremail = userinfo['email']
             st.session_state.userid = userinfo['userid']
-            st.session_state.chat_history = load_chat_from_firestore(userinfo['userid'])
+            st.session_state.chat_history = load_chat_from_backend(userinfo['userid'])
 
             global Usernm
             Usernm = userinfo['username']

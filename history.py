@@ -4,6 +4,10 @@ import requests
 def app():
     st.title("Chat History")
 
+    if 'userid' not in st.session_state or not st.session_state.userid:
+        st.warning("You need to be signed in to see the chat history.")
+        return
+
     history_endpoint = "http://localhost:5000/chat_histories"
     chat_history_endpoint = "http://localhost:5000/chat_history"
 
@@ -14,7 +18,7 @@ def app():
         st.session_state.messages = []
 
     try:
-        response = requests.get(history_endpoint)
+        response = requests.get(history_endpoint, params={"user_id": st.session_state.userid})
         if response.status_code == 200:
             history = response.json()
             if history:
