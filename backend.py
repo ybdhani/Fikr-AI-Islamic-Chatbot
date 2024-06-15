@@ -131,15 +131,24 @@ def chat():
 
 @app.route('/chat_histories', methods=['GET'])
 def chat_histories():
-    summaries = [{"summary": entry["summary"], "timestamp": entry["timestamp"]} for entry in chat_history if entry.get("summary")]
+    summaries = [{"session_id": entry["session_id"], "summary": entry["summary"], "timestamp": entry["timestamp"]} for entry in chat_history if entry.get("summary")]
     return jsonify(summaries)
 
-@app.route('/chat_history/<timestamp>', methods=['GET'])
-def chat_history_by_timestamp(timestamp):
+
+# @app.route('/chat_history/<timestamp>', methods=['GET'])
+# def chat_history_by_timestamp(timestamp):
+#     for entry in chat_history:
+#         if entry["timestamp"] == timestamp:
+#             return jsonify(entry["messages"])
+#     return jsonify({"error": "Chat history not found."}), 404
+
+@app.route('/chat_history/<session_id>', methods=['GET'])
+def chat_history_by_uuid(session_id):
     for entry in chat_history:
-        if entry["timestamp"] == timestamp:
+        if entry["session_id"] == session_id:
             return jsonify(entry["messages"])
     return jsonify({"error": "Chat history not found."}), 404
+
 
 def lookup_vector_database(query):
     top_k = 10
