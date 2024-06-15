@@ -9,7 +9,7 @@ def app():
 
     .main {
         padding: 0 20px 20px 20px; /* Removed top padding */
-        border-radius: var(--border-radius);
+        border-radius: var (--border-radius);
         text-align: center;
     }
     .title {
@@ -41,7 +41,8 @@ def app():
     <div class='content'>
         Fikr is an advanced AI-powered chatbot designed to assist with answering Islamic questions. 
         While it provides accurate information sourced from trusted Hadith collections, it is not a substitute for a scholar or fatwa giver. 
-        Our current Hadith sources include Sahih Bukhari, Sahih Muslim, and other reputable collections.
+        So far, the chatbot has been supplied with a hadith dataset containing all Hadiths from the six primary hadith collections. 
+        The data is scraped from <a href='http://qaalarasulallah.com/' target='_blank'>qaalarasulallah.com</a>.
     </div>
     """, unsafe_allow_html=True)
     
