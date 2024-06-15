@@ -46,10 +46,5 @@ def app():
     except Exception as e:
         st.error(f"Error loading chat history: {e}")
 
-    if st.session_state.loaded_chat and st.session_state.messages:
-        st.write("### Chat Messages")
-        for message in st.session_state.messages:
-            st.write(f"{message['role']}: {message['content']}")
-
 if __name__ == "__main__":
     app()

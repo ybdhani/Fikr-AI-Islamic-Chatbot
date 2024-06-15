@@ -78,7 +78,7 @@ def app():
             user_chats = [chat for chat in response if chat['user_id'] == user_id]
             return user_chats
         except Exception as e:
-            st.warning(f'Failed to load chat history: {e}')
+            print(f'Failed to load chat history: {e}')
             return []
 
 
